@@ -54,6 +54,12 @@ nav a {
 
 nav a:hover { color: #17201d; }
 
+nav a.active {
+  color: #17201d;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
 nav .nav-cta {
   padding: 11px 18px;
   color: #fff;

@@ -1,10 +1,13 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { App } from './app';
+import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
+      providers: [provideRouter(routes)],
     })
       .compileComponents();
   });
@@ -15,12 +18,21 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render the homepage heading', async () => {
+  it('should expose navbar links for each application route', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain(
-      'A thoughtful starting point for your next idea.',
-    );
+    const links = Array.from(compiled.querySelectorAll('nav a'));
+
+    expect(links.map((link) => link.textContent?.trim())).toEqual([
+      'Login',
+      'Register',
+      'Chat Room',
+    ]);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/login',
+      '/register',
+      '/chatroom',
+    ]);
   });
 });

@@ -1,0 +1,14 @@
+<main aria-labelledby="chatroom-title">
+  <section>
+    <h1 id="chatroom-title">Welcome to the chat room</h1>
+
+    <form [formGroup]="messageForm" (ngSubmit)="onSubmit()">
+      <label for="message">Message</label>
+      <textarea id="message" formControlName="message" rows="5"></textarea>
+      @if (messageForm.controls.message.invalid && (messageForm.controls.message.touched || submitted)) {
+        <p role="alert">Enter a message before sending.</p>
+      }
+      <button type="submit">Send</button>
+    </form>
+  </section>
+</main>

@@ -4,13 +4,15 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 ## Development server
 
-To start a local development server, run:
+To start Angular and the local Socket.IO chat server together, run:
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open `http://localhost:4200/`. Angular reloads when source files change, while Socket.IO listens on `http://localhost:3000/`. Its health endpoint is `http://localhost:3000/health`.
+
+To run only one process, use `npm run angular` or `npm run socket`.
 
 ## Code scaffolding
 

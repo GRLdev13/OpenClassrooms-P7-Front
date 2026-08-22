@@ -1,14 +1,51 @@
-<main aria-labelledby="chatroom-title">
-  <section>
-    <h1 id="chatroom-title">Welcome to the chat room</h1>
+<main class="chat-page" aria-labelledby="chatroom-title">
+  <section class="chat-panel">
+    <header class="chat-header">
+      <div>
+        <p class="live-label"><span aria-hidden="true"></span> {{ websocketService.status() }}</p>
+        <h1 id="chatroom-title">Stream chat</h1>
+      </div>
+      <button class="more-button" type="button" aria-label="Chat options">•••</button>
+    </header>
 
-    <form [formGroup]="messageForm" (ngSubmit)="onSubmit()">
-      <label for="message">Message</label>
-      <textarea id="message" formControlName="message" rows="5"></textarea>
-      @if (messageForm.controls.message.invalid && (messageForm.controls.message.touched || submitted)) {
-        <p role="alert">Enter a message before sending.</p>
+    <div class="chat-log" role="log" aria-live="polite" aria-label="Chat messages">
+      <p class="welcome-message">Welcome to the chat room!</p>
+
+      @for (message of websocketService.messages(); track message.id) {
+        <article class="chat-message">
+          <span class="badge" aria-hidden="true">●</span>
+          <p>
+            <strong [style.color]="usernameColor(message.name)">{{ message.name }}</strong><span aria-hidden="true">:</span>
+            {{ message.message }}
+          </p>
+        </article>
       }
-      <button type="submit">Send</button>
+
+      @if (websocketService.error()) {
+        <p class="connection-error" role="alert">{{ websocketService.error() }}</p>
+      }
+
+    </div>
+
+    <form class="chat-composer" [formGroup]="messageForm" (ngSubmit)="onSubmit()">
+      <label class="sr-only" for="message">Send a message</label>
+      <textarea
+        id="message"
+        formControlName="message"
+        rows="2"
+        maxlength="500"
+        placeholder="Send a message"
+      ></textarea>
+
+      <div class="composer-actions">
+        <button class="utility-button" type="button" aria-label="Open emotes">☺</button>
+        <span class="character-count">{{ messageForm.controls.message.value.length }}/500</span>
+        <button class="send-button" type="submit">Send</button>
+      </div>
+
+      @if (messageForm.controls.message.invalid && (messageForm.controls.message.touched || submitted)) {
+        <p class="error" role="alert">Enter a message before sending.</p>
+      }
     </form>
   </section>
 </main>

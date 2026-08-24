@@ -45,7 +45,16 @@
         }
       </div>
 
-      <button type="submit">Create account</button>
+      @if (errorMessage) {
+        <p class="error" role="alert">{{ errorMessage }}</p>
+      }
+      @if (successMessage) {
+        <p role="status">{{ successMessage }}</p>
+      }
+
+      <button type="submit" [disabled]="isLoading">
+        {{ isLoading ? 'Creating account…' : 'Create account' }}
+      </button>
     </form>
   </section>
 </main>

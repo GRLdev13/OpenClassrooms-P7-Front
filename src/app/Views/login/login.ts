@@ -20,6 +20,7 @@ export class LoginView {
 	readonly loginForm = this.formBuilder.nonNullable.group({
 		email: ['', [Validators.required, Validators.email]],
 		password: ['', [Validators.required, Validators.minLength(8)]],
+		isAdmin: false,
 	});
 
 	submitted = false;
@@ -43,8 +44,11 @@ export class LoginView {
 		this.errorMessage = '';
 		this.successMessage = '';
 
-		this.loginService
-			.login(credentials)
+		const loginRequest = this.loginForm.controls.isAdmin.value
+			? this.loginService.loginAdmin(credentials)
+			: this.loginService.login(credentials);
+
+		loginRequest
 			.pipe(finalize(() => (this.isLoading = false)))
 			.subscribe({
 				next: (response) => {
@@ -55,6 +59,7 @@ export class LoginView {
 							id: email,
 							name: email,
 							email,
+							isAdmin: this.loginForm.controls.isAdmin.value,
 						}));
 
 						if (response.token) {

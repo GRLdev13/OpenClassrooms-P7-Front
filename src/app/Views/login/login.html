@@ -27,6 +27,11 @@
         }
       </div>
 
+      <label class="admin-option" for="admin-login">
+        <input id="admin-login" type="checkbox" formControlName="isAdmin" />
+        <span>Sign in as an administrator</span>
+      </label>
+
       @if (errorMessage) {
         <p class="error" role="alert">{{ errorMessage }}</p>
       }
@@ -35,6 +40,11 @@
       }
 
       <button type="submit">
+         @if (loginForm.controls.isAdmin.value) {
+          Sign in as administrator
+        } @else {
+          Sign in
+        }
       </button>
     </form>
   </section>

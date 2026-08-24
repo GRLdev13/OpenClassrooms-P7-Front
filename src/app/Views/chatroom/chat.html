@@ -1,51 +1,86 @@
-<main class="chat-page" aria-labelledby="chatroom-title">
-  <section class="chat-panel">
-    <header class="chat-header">
-      <div>
-        <p class="live-label"><span aria-hidden="true"></span> {{ websocketService.status() }}</p>
-        <h1 id="chatroom-title">Stream chat</h1>
-      </div>
-      <button class="more-button" type="button" aria-label="Chat options">•••</button>
-    </header>
-
-    <div class="chat-log" role="log" aria-live="polite" aria-label="Chat messages">
-      <p class="welcome-message">Welcome to the chat room!</p>
-
-      @for (message of websocketService.messages(); track message.id) {
-        <article class="chat-message">
-          <span class="badge" aria-hidden="true">●</span>
-          <p>
-            <strong [style.color]="usernameColor(message.name)">{{ message.name }}</strong><span aria-hidden="true">:</span>
-            {{ message.message }}
-          </p>
-        </article>
-      }
-
-      @if (websocketService.error()) {
-        <p class="connection-error" role="alert">{{ websocketService.error() }}</p>
-      }
-
-    </div>
-
-    <form class="chat-composer" [formGroup]="messageForm" (ngSubmit)="onSubmit()">
-      <label class="sr-only" for="message">Send a message</label>
-      <textarea
-        id="message"
-        formControlName="message"
-        rows="2"
-        maxlength="500"
-        placeholder="Send a message"
-      ></textarea>
-
-      <div class="composer-actions">
-        <button class="utility-button" type="button" aria-label="Open emotes">☺</button>
-        <span class="character-count">{{ messageForm.controls.message.value.length }}/500</span>
-        <button class="send-button" type="submit">Send</button>
+<main class="messenger-page" aria-labelledby="chatroom-title">
+  <section class="messenger-shell">
+    <aside class="conversation-sidebar" aria-label="Conversations">
+      <div class="sidebar-heading">
+        <div><p class="eyebrow">Messages</p><h1 id="chatroom-title">Chats</h1></div>
+        <button class="new-message-button" type="button" aria-label="New message">✎</button>
       </div>
 
-      @if (messageForm.controls.message.invalid && (messageForm.controls.message.touched || submitted)) {
-        <p class="error" role="alert">Enter a message before sending.</p>
-      }
-    </form>
+      <label class="search-field">
+        <span aria-hidden="true">⌕</span><span class="sr-only">Search conversations</span>
+        <input type="search" placeholder="Search Messenger" />
+      </label>
+
+      <div class="conversation-list">
+        @for (conversation of suggestedConversations; track conversation.id) {
+          <button type="button" (click)="openConversation(conversation)">
+            <span class="avatar group-avatar">{{ conversation.initials }}</span>
+            <span class="conversation-copy"><strong>{{ conversation.title }}</strong><small>{{ conversation.subtitle }}</small></span>
+            <span class="online-dot" aria-label="Active"></span>
+          </button>
+        }
+        @for (user of websocketService.users(); track user.id) {
+          @if (user.id !== currentUser.id) {
+            <button type="button" (click)="openUserConversation(user)">
+              <span class="avatar">{{ initials(user.name) }}</span>
+              <span class="conversation-copy"><strong>{{ user.name }}</strong><small>Active now</small></span>
+              <span class="online-dot" aria-label="Active"></span>
+            </button>
+          }
+        }
+      </div>
+    </aside>
+
+    <section class="empty-state" aria-label="Messenger introduction">
+      <div class="messenger-mark" aria-hidden="true">⌁</div>
+      <h2>Your messages</h2>
+      <p>Open a conversation from the list. You can keep several chats open at once.</p>
+      <div class="connection-status" [class.connected]="websocketService.status() === 'connected'">
+        <span></span>{{ websocketService.status() }} as {{ currentUser.name }}
+      </div>
+      @if (websocketService.error()) { <p class="connection-error" role="alert">{{ websocketService.error() }}</p> }
+    </section>
+  </section>
+
+  <section class="chat-dock" aria-label="Open chat windows">
+    @for (conversation of openConversations; track conversation.id) {
+      <article class="chat-window" [class.minimized]="isMinimized(conversation.id)">
+        <header class="chat-header" (dblclick)="toggleMinimized(conversation.id)">
+          <button class="chat-identity" type="button" (click)="toggleMinimized(conversation.id)">
+            <span class="avatar small">{{ conversation.initials }}</span>
+            <span><strong>{{ conversation.title }}</strong><small><i></i> Active now</small></span>
+          </button>
+          <div class="window-actions">
+            <button type="button" aria-label="Minimize chat" (click)="toggleMinimized(conversation.id)">−</button>
+            <button type="button" aria-label="Close chat" (click)="closeConversation(conversation.id)">×</button>
+          </div>
+        </header>
+
+        @if (!isMinimized(conversation.id)) {
+          <div class="chat-log" role="log" aria-live="polite" [attr.aria-label]="conversation.title + ' messages'">
+            <div class="conversation-intro">
+              <span class="avatar large">{{ conversation.initials }}</span><strong>{{ conversation.title }}</strong><small>{{ conversation.subtitle }}</small>
+            </div>
+            @for (message of messagesFor(conversation.id); track message.id) {
+              <div class="message-row" [class.own]="isOwnMessage(message)">
+                @if (!isOwnMessage(message)) { <span class="avatar message-avatar">{{ initials(message.name) }}</span> }
+                <div><span class="message-bubble">{{ message.message }}</span><time>{{ messageTime(message.timeStamp) }}</time></div>
+              </div>
+            } @empty { <p class="no-messages">No messages yet. Say hello!</p> }
+          </div>
+
+          <footer class="chat-composer">
+            <button type="button" aria-label="Add attachment">＋</button>
+            <label>
+              <span class="sr-only">Message {{ conversation.title }}</span>
+              <textarea rows="1" maxlength="500" placeholder="Aa" [value]="drafts[conversation.id] ?? ''"
+                (input)="updateDraft(conversation.id, $event)" (keydown)="handleComposerKeydown($event, conversation)"></textarea>
+            </label>
+            <button class="send-button" type="button" aria-label="Send message"
+              [disabled]="!(drafts[conversation.id] ?? '').trim()" (click)="sendMessage(conversation)">➤</button>
+          </footer>
+        }
+      </article>
+    }
   </section>
 </main>

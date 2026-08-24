@@ -1,51 +1,136 @@
 import { Component, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Message } from '../../Dtos/message.dto';
 import { UserDto } from '../../Dtos/user.dto';
+import { ConversationService } from '../../Services/conversation.service';
 import { WebsocketService } from '../../Services/websocket.service';
+
+interface Conversation {
+  id: string;
+  title: string;
+  subtitle: string;
+  initials: string;
+}
 
 @Component({
   selector: 'app-chatroom',
-  imports: [ReactiveFormsModule],
   templateUrl: './chat.html',
   styleUrl: './chat.scss',
 })
 export class Chatroom {
   readonly websocketService = inject(WebsocketService);
-  private readonly formBuilder = inject(FormBuilder);
-  private readonly roomId = 'main';
-  private readonly currentUser = this.readCurrentUser();
+  private readonly conversationService = inject(ConversationService);
+  readonly currentUser = this.readCurrentUser();
 
-  readonly messageForm = this.formBuilder.nonNullable.group({
-    message: ['', [Validators.required]],
-  });
+  readonly suggestedConversations: Conversation[] = [
+    { id: 'main', title: 'General chat', subtitle: 'Everyone', initials: 'GC' },
+    { id: 'project-team', title: 'Project team', subtitle: 'Team room', initials: 'PT' },
+    { id: 'community-help', title: 'Community help', subtitle: 'Ask the community', initials: 'CH' },
+  ];
 
-  submitted = false;
+  openConversations: Conversation[] = [];
+  minimizedConversationIds = new Set<string>();
+  drafts: Record<string, string> = {};
 
-  onSubmit(): void {
-    this.submitted = true;
-
-    if (this.messageForm.invalid) {
-      this.messageForm.markAllAsTouched();
-      return;
-    }
-
-    const text = this.messageForm.controls.message.value.trim();
-
-    if (!text) {
-      this.messageForm.controls.message.setErrors({ required: true });
-      return;
-    }
-
-    this.websocketService.joinAndSend(this.roomId, this.currentUser, text);
-
-    this.messageForm.reset();
-    this.submitted = false;
+  constructor() {
+    this.openConversation(this.suggestedConversations[0]);
   }
 
-  usernameColor(name: string): string {
-    const colors = ['#ff75e6', '#53fc18', '#5b99ff', '#ffb31a', '#bf94ff'];
-    const hash = [...name].reduce((total, character) => total + character.charCodeAt(0), 0);
-    return colors[hash % colors.length];
+  openConversation(conversation: Conversation): void {
+    if (!this.openConversations.some(({ id }) => id === conversation.id)) {
+      this.openConversations = [...this.openConversations, conversation];
+    }
+
+    this.minimizedConversationIds.delete(conversation.id);
+    this.websocketService.joinRoom(conversation.id, this.currentUser);
+    this.restoreConversation(conversation.id);
+  }
+
+  openUserConversation(user: UserDto): void {
+    const roomId = `direct:${[this.currentUser.id, user.id].sort().join(':')}`;
+    this.openConversation({
+      id: roomId,
+      title: user.name,
+      subtitle: 'Active now',
+      initials: this.initials(user.name),
+    });
+  }
+
+  closeConversation(roomId: string): void {
+    this.openConversations = this.openConversations.filter(({ id }) => id !== roomId);
+    this.minimizedConversationIds.delete(roomId);
+    this.websocketService.leaveRoom(roomId);
+  }
+
+  toggleMinimized(roomId: string): void {
+    if (this.minimizedConversationIds.has(roomId)) {
+      this.minimizedConversationIds.delete(roomId);
+      return;
+    }
+
+    this.minimizedConversationIds.add(roomId);
+  }
+
+  isMinimized(roomId: string): boolean {
+    return this.minimizedConversationIds.has(roomId);
+  }
+
+  messagesFor(roomId: string): Message[] {
+    return this.websocketService.messages().filter(
+      (message) => message.id_conversation === roomId,
+    );
+  }
+
+  isOwnMessage(message: Message): boolean {
+    return message.id_sender === this.currentUser.id;
+  }
+
+  updateDraft(roomId: string, event: Event): void {
+    this.drafts = {
+      ...this.drafts,
+      [roomId]: (event.target as HTMLTextAreaElement).value,
+    };
+  }
+
+  sendMessage(conversation: Conversation): void {
+    const text = (this.drafts[conversation.id] ?? '').trim();
+
+    if (!text) {
+      return;
+    }
+
+    this.websocketService.joinAndSend(conversation.id, this.currentUser, text);
+    this.drafts = { ...this.drafts, [conversation.id]: '' };
+  }
+
+  handleComposerKeydown(event: KeyboardEvent, conversation: Conversation): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage(conversation);
+    }
+  }
+
+  messageTime(value: Date): string {
+    return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  initials(name: string): string {
+    return name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join('');
+  }
+
+  private restoreConversation(id: string): void {
+    this.conversationService.getConversationById(id).subscribe({
+      next: (conversation) => {
+        this.websocketService.restoreParticipants(conversation.participants ?? []);
+        this.websocketService.restoreHistory(conversation.messages ?? []);
+      },
+      // Live chat remains available if history cannot be loaded.
+      error: () => undefined,
+    });
   }
 
   private readCurrentUser(): UserDto {

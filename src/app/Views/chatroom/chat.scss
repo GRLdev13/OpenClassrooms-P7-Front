@@ -420,7 +420,7 @@ button.new-message-button {
   place-items: center;
   border-radius: 24px;
   color: #fff;
-  background: linear-gradient(145deg, #00b2ff, #0866ff 55%, #a033ff);
+  background: linear-gradient(145deg, #ff3c00, #d9e70c 55%, #a033ff);
   box-shadow: 0 16px 35px rgba(8, 102, 255, 0.22);
   font-size: 2.5rem;
 }
@@ -538,6 +538,14 @@ button.new-message-button {
 .conversation-intro small,
 .no-messages { color: var(--messenger-muted); font-size: 0.72rem; }
 .no-messages { text-align: center; }
+
+.system-message {
+  margin: 12px auto;
+  color: var(--messenger-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-align: center;
+}
 
 .message-row {
   margin: 3px 0;

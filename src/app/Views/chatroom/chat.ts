@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, HostListener, inject, OnDestroy } from '@angular/core';
 import { Message } from '../../Dtos/message.dto';
 import { UserDto } from '../../Dtos/user.dto';
 import { ConversationService } from '../../Services/conversation.service';
+import { MessageService } from '../../Services/message.service';
 import { WebsocketService } from '../../Services/websocket.service';
 
 interface Conversation {
@@ -16,9 +17,10 @@ interface Conversation {
   templateUrl: './chat.html',
   styleUrl: './chat.scss',
 })
-export class Chatroom {
+export class Chatroom implements OnDestroy {
   readonly websocketService = inject(WebsocketService);
   private readonly conversationService = inject(ConversationService);
+  private readonly messageService = inject(MessageService);
   readonly currentUser = this.readCurrentUser();
 
   readonly suggestedConversations: Conversation[] = [
@@ -28,9 +30,19 @@ export class Chatroom {
   openConversations: Conversation[] = [];
   minimizedConversationIds = new Set<string>();
   drafts: Record<string, string> = {};
+  private departureNotified = false;
 
   constructor() {
     this.openConversation(this.suggestedConversations[0]);
+  }
+
+  @HostListener('window:pagehide')
+  onPageHide(): void {
+    this.notifyDeparture();
+  }
+
+  ngOnDestroy(): void {
+    this.notifyDeparture();
   }
 
   openConversation(conversation: Conversation): void {
@@ -82,6 +94,10 @@ export class Chatroom {
     return message.id_sender === this.currentUser.id;
   }
 
+  isSystemMessage(message: Message): boolean {
+    return message.id_sender === 'system';
+  }
+
   updateDraft(roomId: string, event: Event): void {
     this.drafts = {
       ...this.drafts,
@@ -96,8 +112,24 @@ export class Chatroom {
       return;
     }
 
-    this.websocketService.joinAndSend(conversation.id, this.currentUser, text);
-    this.drafts = { ...this.drafts, [conversation.id]: '' };
+    const message = new Message();
+    message.id = globalThis.crypto?.randomUUID?.()
+      ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    message.name = this.currentUser.email || this.currentUser.name;
+    message.message = text;
+    message.timeStamp = new Date();
+    message.id_conversation = conversation.id;
+    message.id_sender = this.currentUser.id;
+    message.status = 'sending';
+
+    this.messageService.postMessage(message).subscribe({
+      next: (savedMessage) => {
+        const persistedMessage = Object.assign(new Message(), message, savedMessage);
+        this.websocketService.sendMessage(persistedMessage, this.currentUser);
+        this.drafts = { ...this.drafts, [conversation.id]: '' };
+      },
+      error: () => undefined,
+    });
   }
 
   handleComposerKeydown(event: KeyboardEvent, conversation: Conversation): void {
@@ -129,6 +161,15 @@ export class Chatroom {
       // Live chat remains available if history cannot be loaded.
       error: () => undefined,
     });
+  }
+
+  private notifyDeparture(): void {
+    if (this.departureNotified) {
+      return;
+    }
+
+    this.departureNotified = true;
+    this.websocketService.leaveChatroom(this.currentUser);
   }
 
   private readCurrentUser(): UserDto {

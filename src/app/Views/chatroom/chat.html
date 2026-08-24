@@ -3,11 +3,9 @@
     <aside class="conversation-sidebar" aria-label="Conversations">
       <div class="sidebar-heading">
         <div>
-          <p class="eyebrow">Messages</p>
           <h1 id="chatroom-title">Chats</h1>
           <p class="chat-account">{{ currentUser.email || currentUser.name }}</p>
         </div>
-        <button class="new-message-button" type="button" aria-label="New message">✎</button>
       </div>
 
       <label class="search-field">
@@ -37,6 +35,7 @@
 
     <section class="empty-state" aria-label="Messenger introduction">
       <div class="messenger-mark" aria-hidden="true">⌁</div>
+      <span class="brand-mark">YCYW</span>
       <h2>Your messages</h2>
       <p>Open a conversation from the list. You can keep several chats open at once.</p>
       <div class="connection-status" [class.connected]="websocketService.status() === 'connected'">
@@ -66,15 +65,19 @@
               <span class="avatar large">{{ conversation.initials }}</span><strong>{{ conversation.title }}</strong><small>{{ conversation.subtitle }}</small>
             </div>
             @for (message of messagesFor(conversation.id); track message.id) {
-              <div class="message-row" [class.own]="isOwnMessage(message)">
-                <div>
-                  <span class="message-author">
-                    {{ isOwnMessage(message) ? (currentUser.email || currentUser.name) : message.name }}
-                  </span>
-                  <span class="message-bubble">{{ message.message }}</span>
-                  <time>{{ messageTime(message.timeStamp) }}</time>
+              @if (isSystemMessage(message)) {
+                <p class="system-message">{{ message.message }}</p>
+              } @else {
+                <div class="message-row" [class.own]="isOwnMessage(message)">
+                  <div>
+                    <span class="message-author">
+                      {{ isOwnMessage(message) ? (currentUser.email || currentUser.name) : message.name }}
+                    </span>
+                    <span class="message-bubble">{{ message.message }}</span>
+                    <time>{{ messageTime(message.timeStamp) }}</time>
+                  </div>
                 </div>
-              </div>
+              }
             } @empty { <p class="no-messages">No messages yet. Say hello!</p> }
           </div>
 

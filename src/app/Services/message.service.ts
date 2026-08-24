@@ -9,8 +9,4 @@ import { API_CONFIG } from './api.config';
 export class MessageService {
   private readonly http = inject(HttpClient);
   private readonly ROUTE = 'messages';
-
-  postMessage(message: Message): Observable<Message> {
-    return this.http.post<Message>(`${API_CONFIG}/${this.ROUTE}`, message);
-  }
 }

@@ -17,7 +17,10 @@
         @for (conversation of suggestedConversations; track conversation.id) {
           <button type="button" (click)="openConversation(conversation)">
             <span class="avatar group-avatar">{{ conversation.initials }}</span>
-            <span class="conversation-copy"><strong>{{ conversation.title }}</strong><small>{{ conversation.subtitle }}</small></span>
+            <span class="conversation-copy"
+              ><strong>{{ conversation.title }}</strong
+              ><small>{{ conversation.subtitle }}</small></span
+            >
             <span class="online-dot" aria-label="Active"></span>
           </button>
         }
@@ -25,7 +28,10 @@
           @if (user.id !== currentUser.id) {
             <button type="button" (click)="openUserConversation(user)">
               <span class="avatar">{{ initials(user.name) }}</span>
-              <span class="conversation-copy"><strong>{{ user.name }}</strong><small>Active now</small></span>
+              <span class="conversation-copy"
+                ><strong>{{ user.name }}</strong
+                ><small>Active now</small></span
+              >
               <span class="online-dot" aria-label="Active"></span>
             </button>
           }
@@ -41,7 +47,9 @@
       <div class="connection-status" [class.connected]="websocketService.status() === 'connected'">
         <span></span>{{ websocketService.status() }} as {{ currentUser.email || currentUser.name }}
       </div>
-      @if (websocketService.error()) { <p class="connection-error" role="alert">{{ websocketService.error() }}</p> }
+      @if (websocketService.error()) {
+        <p class="connection-error" role="alert">{{ websocketService.error() }}</p>
+      }
     </section>
   </section>
 
@@ -51,45 +59,86 @@
         <header class="chat-header" (dblclick)="toggleMinimized(conversation.id)">
           <button class="chat-identity" type="button" (click)="toggleMinimized(conversation.id)">
             <span class="avatar small">{{ conversation.initials }}</span>
-            <span><strong>{{ conversation.title }}</strong><small><i></i> Active now</small></span>
+            <span
+              ><strong>{{ conversation.title }}</strong
+              ><small><i></i> Active now</small></span
+            >
           </button>
           <div class="window-actions">
-            <button type="button" aria-label="Minimize chat" (click)="toggleMinimized(conversation.id)">−</button>
-            <button type="button" aria-label="Close chat" (click)="closeConversation(conversation.id)">×</button>
+            <button
+              type="button"
+              aria-label="Minimize chat"
+              (click)="toggleMinimized(conversation.id)"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              aria-label="Close chat"
+              (click)="closeConversation(conversation.id)"
+            >
+              ×
+            </button>
           </div>
         </header>
 
         @if (!isMinimized(conversation.id)) {
-          <div class="chat-log" role="log" aria-live="polite" [attr.aria-label]="conversation.title + ' messages'">
+          <div
+            class="chat-log"
+            role="log"
+            aria-live="polite"
+            [attr.aria-label]="conversation.title + ' messages'"
+          >
             <div class="conversation-intro">
-              <span class="avatar large">{{ conversation.initials }}</span><strong>{{ conversation.title }}</strong><small>{{ conversation.subtitle }}</small>
+              <span class="avatar large">{{ conversation.initials }}</span
+              ><strong>{{ conversation.title }}</strong
+              ><small>{{ conversation.subtitle }}</small>
             </div>
-            @for (message of messagesFor(conversation.id); track message.id) {
+            @for (message of messagesFor(conversation.id); track message) {
               @if (isSystemMessage(message)) {
                 <p class="system-message">{{ message.message }}</p>
               } @else {
                 <div class="message-row" [class.own]="isOwnMessage(message)">
                   <div>
                     <span class="message-author">
-                      {{ isOwnMessage(message) ? (currentUser.email || currentUser.name) : message.name }}
+                      {{
+                        isOwnMessage(message) ? currentUser.email || currentUser.name : message.name
+                      }}
                     </span>
                     <span class="message-bubble">{{ message.message }}</span>
                     <time>{{ messageTime(message.timeStamp) }}</time>
                   </div>
                 </div>
               }
-            } @empty { <p class="no-messages">No messages yet. Say hello!</p> }
+            } @empty {
+              <p class="no-messages">No messages yet. Say hello!</p>
+            }
           </div>
 
           <footer class="chat-composer">
             <button type="button" aria-label="Add attachment">＋</button>
             <label>
               <span class="sr-only">Message {{ conversation.title }}</span>
-              <textarea rows="1" maxlength="500" placeholder="Aa" [value]="drafts[conversation.id] ?? ''"
-                (input)="updateDraft(conversation.id, $event)" (keydown)="handleComposerKeydown($event, conversation)"></textarea>
+              <textarea
+                rows="1"
+                maxlength="500"
+                placeholder="Aa"
+                [value]="drafts[conversation.id] ?? ''"
+                (input)="updateDraft(conversation.id, $event)"
+                (keydown)="handleComposerKeydown($event, conversation)"
+              ></textarea>
             </label>
-            <button class="send-button" type="button" aria-label="Send message"
-              [disabled]="!(drafts[conversation.id] ?? '').trim()" (click)="sendMessage(conversation)">➤</button>
+            <button
+              class="send-button"
+              type="button"
+              aria-label="Send message"
+              [disabled]="!(drafts[conversation.id] ?? '').trim()"
+              (click)=" conversation.id ?  sendMessage(conversation) : createConversation(
+                  {  userId:conversation.normalUser,
+                             adminUserId: conversation.adminUser})"
+            >
+              ➤
+            </button>
           </footer>
         }
       </article>

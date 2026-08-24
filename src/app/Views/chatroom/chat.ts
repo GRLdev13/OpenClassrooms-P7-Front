@@ -4,12 +4,15 @@ import { UserDto } from '../../Dtos/user.dto';
 import { ConversationService } from '../../Services/conversation.service';
 import { MessageService } from '../../Services/message.service';
 import { WebsocketService } from '../../Services/websocket.service';
+import { ConversationDto, CreateConversationDto } from '../../Dtos/conversation.dto';
 
 interface Conversation {
   id: string;
   title: string;
   subtitle: string;
   initials: string;
+  adminUser: string;
+  normalUser: string;
 }
 
 @Component({
@@ -24,7 +27,7 @@ export class Chatroom implements OnDestroy {
   readonly currentUser = this.readCurrentUser();
 
   readonly suggestedConversations: Conversation[] = [
-    { id: 'main', title: 'General chat', subtitle: 'Everyone', initials: 'GC' },
+    // { id: 'main', title: 'General chat', subtitle: 'Everyone', initials: 'GC' },
   ];
 
   openConversations: Conversation[] = [];
@@ -56,13 +59,50 @@ export class Chatroom implements OnDestroy {
   }
 
   openUserConversation(user: UserDto): void {
-    const roomId = `direct:${[this.currentUser.id, user.id].sort().join(':')}`;
-    this.openConversation({
-      id: roomId,
-      title: user.name,
-      subtitle: 'Active now',
-      initials: this.initials(user.name),
-    });
+
+    //TODO: get Conversation first
+    // if not exists : create it
+
+    this.conversationService
+      .createConversation(
+        {  
+          adminUserId:  user.isAdmin ? this.currentUser.id : user.id,
+          userId: user.isAdmin ? user.id : this.currentUser.id
+        })
+      .subscribe({
+        next: (response) => {
+          const createdConversation = response.body;
+
+          if (response.status !== 200 || !createdConversation?.id) {
+            return;
+          }
+
+          const createdAt = new Date();
+          const creationMessage = new Message();
+          creationMessage.id = globalThis.crypto?.randomUUID?.()
+            ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          creationMessage.name = 'System';
+          creationMessage.message = `Conversation created with id ${createdConversation.id} at ${createdAt.toLocaleString()}`;
+          creationMessage.timeStamp = createdAt;
+          creationMessage.id_conversation = createdConversation.id;
+          creationMessage.id_sender = 'system';
+          creationMessage.status = 'sent';
+
+          this.websocketService.restoreParticipants(createdConversation.participants ?? []);
+          this.websocketService.restoreHistory([
+            ...(createdConversation.messages ?? []),
+            creationMessage,
+          ]);
+
+          this.openConversation({
+            id: createdConversation.id,
+            title: user.email || user.name,
+            subtitle: 'Active now',
+            initials: this.initials(user.email || user.name),
+          });
+        },
+        error: () => undefined,
+      });
   }
 
   closeConversation(roomId: string): void {
@@ -105,6 +145,21 @@ export class Chatroom implements OnDestroy {
     };
   }
 
+  createConversation(conversation: CreateConversationDto)
+  {
+    this.conversationService.createConversation(conversation).subscribe({
+      next: (savedMessage) => {
+        const persistedMessage = Object.assign(new Message(), Message, savedMessage);
+        this.websocketService.sendMessage(persistedMessage, this.currentUser);
+
+        if(savedMessage.ok && savedMessage.body)
+        this.drafts = { ...this.drafts, [savedMessage.body?.id]: '' };
+      },
+      error: () => //todo throw error
+      undefined,
+    });
+  }
+
   sendMessage(conversation: Conversation): void {
     const text = (this.drafts[conversation.id] ?? '').trim();
 
@@ -113,8 +168,6 @@ export class Chatroom implements OnDestroy {
     }
 
     const message = new Message();
-    message.id = globalThis.crypto?.randomUUID?.()
-      ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     message.name = this.currentUser.email || this.currentUser.name;
     message.message = text;
     message.timeStamp = new Date();
@@ -122,7 +175,7 @@ export class Chatroom implements OnDestroy {
     message.id_sender = this.currentUser.id;
     message.status = 'sending';
 
-    this.messageService.postMessage(message).subscribe({
+    this.conversationService.postMessage(message).subscribe({
       next: (savedMessage) => {
         const persistedMessage = Object.assign(new Message(), message, savedMessage);
         this.websocketService.sendMessage(persistedMessage, this.currentUser);

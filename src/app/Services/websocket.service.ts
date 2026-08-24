@@ -114,6 +114,7 @@ export class WebsocketService {
   }
 
   joinAndSend(roomId: string, user: UserDto, text: string): void {
+    console.log("id room:", roomId);
     this.sendMessage({
       id: this.createId(),
       name: user.name,
@@ -191,8 +192,6 @@ export class WebsocketService {
       if (!message) {
         continue;
       }
-
-      this.addMessageIfMissing(message);
       this.socket.emit('send-message', {
         roomId: message.id_conversation,
         message,
@@ -207,8 +206,7 @@ export class WebsocketService {
         : [...messages, message],
     );
   }
-
-  private createId(): string {
+    private createId(): string {
     return globalThis.crypto?.randomUUID?.()
       ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }

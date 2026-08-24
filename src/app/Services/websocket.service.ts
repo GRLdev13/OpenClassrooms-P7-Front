@@ -5,11 +5,6 @@ import { UserDto } from '../Dtos/user.dto';
 
 type ConnectionStatus = 'offline' | 'connecting' | 'connected';
 
-interface RoomContext {
-  roomId: string;
-  user: UserDto;
-}
-
 interface RoomMessagePayload {
   roomId: string;
   message: Message;
@@ -23,8 +18,7 @@ export class WebsocketService {
   private readonly statusSignal = signal<ConnectionStatus>('offline');
   private readonly errorSignal = signal<string | null>(null);
   private readonly pendingMessages: Message[] = [];
-  private roomContext: RoomContext | null = null;
-  private joinedRoom = false;
+  private readonly roomUsers = new Map<string, UserDto>();
 
   readonly users = this.usersSignal.asReadonly();
   readonly messages = this.messagesSignal.asReadonly();
@@ -42,11 +36,10 @@ export class WebsocketService {
     this.socket.on('connect', () => {
       this.statusSignal.set('connected');
       this.errorSignal.set(null);
-      this.joinRoomAndFlushMessages();
+      this.joinRoomsAndFlushMessages();
     });
 
     this.socket.on('disconnect', () => {
-      this.joinedRoom = false;
       this.statusSignal.set('offline');
     });
 
@@ -63,14 +56,61 @@ export class WebsocketService {
       );
     });
 
+    this.socket.on('users', (users: UserDto[]) => {
+      this.usersSignal.set(users);
+    });
+
     this.socket.on('new-message', (payload: Message | RoomMessagePayload) => {
       const message = 'roomId' in payload ? payload.message : payload;
       this.addMessageIfMissing(message);
     });
   }
 
+  joinRoom(roomId: string, user: UserDto): void {
+    this.roomUsers.set(roomId, user);
+
+    if (this.socket.connected) {
+      this.emitRoomJoin(roomId, user);
+      return;
+    }
+
+    this.statusSignal.set('connecting');
+    this.socket.connect();
+  }
+
+  leaveRoom(roomId: string): void {
+    this.roomUsers.delete(roomId);
+
+    if (this.socket.connected) {
+      this.socket.emit('leave-room', roomId);
+    }
+  }
+
+  restoreHistory(messages: Message[]): void {
+    for (const message of messages) {
+      this.addMessageIfMissing({
+        ...message,
+        timeStamp: new Date(message.timeStamp),
+      });
+    }
+  }
+
+  restoreParticipants(participants: UserDto[]): void {
+    this.usersSignal.update((users) => {
+      const restoredUsers = [...users];
+
+      for (const participant of participants) {
+        if (!restoredUsers.some(({ id }) => id === participant.id)) {
+          restoredUsers.push(participant);
+        }
+      }
+
+      return restoredUsers;
+    });
+  }
+
   joinAndSend(roomId: string, user: UserDto, text: string): void {
-    this.roomContext = { roomId, user };
+    this.roomUsers.set(roomId, user);
     this.pendingMessages.push({
       id: this.createId(),
       name: user.name,
@@ -82,7 +122,8 @@ export class WebsocketService {
     });
 
     if (this.socket.connected) {
-      this.joinRoomAndFlushMessages();
+      this.emitRoomJoin(roomId, user);
+      this.flushMessages();
       return;
     }
 
@@ -90,17 +131,24 @@ export class WebsocketService {
     this.socket.connect();
   }
 
-  private joinRoomAndFlushMessages(): void {
-    if (!this.roomContext || !this.socket.connected) {
+  private joinRoomsAndFlushMessages(): void {
+    if (!this.socket.connected) {
       return;
     }
 
-    if (!this.joinedRoom) {
-      this.socket.emit('new-user', this.roomContext.user);
-      this.socket.emit('join-room', this.roomContext);
-      this.joinedRoom = true;
+    for (const [roomId, user] of this.roomUsers) {
+      this.emitRoomJoin(roomId, user);
     }
 
+    this.flushMessages();
+  }
+
+  private emitRoomJoin(roomId: string, user: UserDto): void {
+    this.socket.emit('new-user', user);
+    this.socket.emit('join-room', { roomId, user });
+  }
+
+  private flushMessages(): void {
     while (this.pendingMessages.length > 0) {
       const message = this.pendingMessages.shift();
 
@@ -110,7 +158,7 @@ export class WebsocketService {
 
       this.addMessageIfMissing(message);
       this.socket.emit('send-message', {
-        roomId: this.roomContext.roomId,
+        roomId: message.id_conversation,
         message,
       } satisfies RoomMessagePayload);
     }

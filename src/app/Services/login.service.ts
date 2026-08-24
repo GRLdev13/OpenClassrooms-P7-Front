@@ -16,6 +16,6 @@ export class LoginService {
 	}
 
 	loginAdmin(credentials: login): Observable<login> {
-		return this.http.post<login>(`${API_CONFIG}/${this.ADMIN_ROUTE}/login`, credentials);
+		return this.http.post<login>(`${API_CONFIG}/${this.ROUTE}/${this.ADMIN_ROUTE}/login`, credentials);
 	}
 }

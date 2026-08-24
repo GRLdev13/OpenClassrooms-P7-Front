@@ -12,6 +12,8 @@ npm start
 
 Open `http://localhost:4200/`. Angular reloads when source files change, while Socket.IO listens on `http://localhost:3000/`. Its health endpoint is `http://localhost:3000/health`.
 
+During development, calls to `/api` are proxied by Angular to `http://localhost:8080`. This keeps API requests same-origin in the browser and avoids CORS preflight failures without changing the Socket.IO server.
+
 To run only one process, use `npm run angular` or `npm run socket`.
 
 ## Code scaffolding

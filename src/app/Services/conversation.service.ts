@@ -3,13 +3,15 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConversationDto } from '../Dtos/conversation.dto';
+import { API_CONFIG } from './api.config';
 
 @Injectable({ providedIn: 'root' })
 export class ConversationService {
   private readonly http = inject(HttpClient);
-  private readonly endpoint = 'http://localhost:3000/api/conversations';
 
   getConversationById(id: string): Observable<ConversationDto> {
-    return this.http.get<ConversationDto>(`${this.endpoint}/${encodeURIComponent(id)}`);
+    return this.http.get<ConversationDto>(
+      `${API_CONFIG}/conversations/${encodeURIComponent(id)}`,
+    );
   }
 }

@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { ConversationDto } from '../Dtos/conversation.dto';
+import { ConversationDto, CreateConversationDto } from '../Dtos/conversation.dto';
 import { API_CONFIG } from './api.config';
 
 @Injectable({ providedIn: 'root' })
@@ -13,6 +13,17 @@ export class ConversationService {
   getConversationById(id: string): Observable<ConversationDto> {
     return this.http.get<ConversationDto>(
       `${API_CONFIG}/${this.ROUTE}/${encodeURIComponent(id)}`,
+    );
+  }
+
+  createConversation(firstUserId: string, secondUserId: string): Observable<ConversationDto> {
+    const participants: CreateConversationDto = {
+      userIds: [firstUserId, secondUserId],
+    };
+
+    return this.http.post<ConversationDto>(
+      `${API_CONFIG}/${this.ROUTE}`,
+      participants,
     );
   }
 }

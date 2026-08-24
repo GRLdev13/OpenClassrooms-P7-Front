@@ -56,6 +56,10 @@ export class WebsocketService {
       );
     });
 
+    this.socket.on('user-left', (user: UserDto) => {
+      this.usersSignal.update((users) => users.filter(({ id }) => id !== user.id));
+    });
+
     this.socket.on('users', (users: UserDto[]) => {
       this.usersSignal.set(users);
     });
@@ -110,8 +114,7 @@ export class WebsocketService {
   }
 
   joinAndSend(roomId: string, user: UserDto, text: string): void {
-    this.roomUsers.set(roomId, user);
-    this.pendingMessages.push({
+    this.sendMessage({
       id: this.createId(),
       name: user.name,
       message: text,
@@ -119,10 +122,31 @@ export class WebsocketService {
       id_conversation: roomId,
       id_sender: user.id,
       status: 'sending',
-    });
+    }, user);
+  }
+
+  disconnect(): void {
+    this.socket.disconnect();
+    this.resetConnectionState(true);
+  }
+
+  leaveChatroom(user: UserDto): void {
+    const roomIds = [...this.roomUsers.keys()];
 
     if (this.socket.connected) {
-      this.emitRoomJoin(roomId, user);
+      this.socket.emit('leave-chatroom', { user, roomIds });
+      this.socket.disconnect();
+    }
+
+    this.resetConnectionState(false);
+  }
+
+  sendMessage(message: Message, user: UserDto): void {
+    this.roomUsers.set(message.id_conversation, user);
+    this.pendingMessages.push(message);
+
+    if (this.socket.connected) {
+      this.emitRoomJoin(message.id_conversation, user);
       this.flushMessages();
       return;
     }
@@ -141,6 +165,18 @@ export class WebsocketService {
     }
 
     this.flushMessages();
+  }
+
+  private resetConnectionState(clearMessages: boolean): void {
+    this.roomUsers.clear();
+    this.pendingMessages.length = 0;
+    this.usersSignal.set([]);
+    this.errorSignal.set(null);
+    this.statusSignal.set('offline');
+
+    if (clearMessages) {
+      this.messagesSignal.set([]);
+    }
   }
 
   private emitRoomJoin(roomId: string, user: UserDto): void {

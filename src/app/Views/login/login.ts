@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { login } from '../../Dtos/login.dto';
@@ -14,6 +15,7 @@ import { LoginService } from '../../Services/login.service';
 export class LoginView {
 	private readonly formBuilder = inject(FormBuilder);
 	private readonly loginService = inject(LoginService);
+	private readonly router = inject(Router);
 
 	readonly loginForm = this.formBuilder.nonNullable.group({
 		email: ['', [Validators.required, Validators.email]],
@@ -45,7 +47,24 @@ export class LoginView {
 			.login(credentials)
 			.pipe(finalize(() => (this.isLoading = false)))
 			.subscribe({
-				next: () => (this.successMessage = 'You are signed in.'),
+				next: (response) => {
+					const email = credentials.email.trim();
+
+					if (typeof window !== 'undefined') {
+						window.localStorage.setItem('user', JSON.stringify({
+							id: email,
+							name: email,
+							email,
+						}));
+
+						if (response.token) {
+							window.localStorage.setItem('token', response.token);
+						}
+					}
+
+					this.successMessage = 'You are signed in.';
+					void this.router.navigate(['/chatroom']);
+				},
 				error: () => (this.errorMessage = 'Unable to sign in. Check your details and try again.'),
 			});
 	}

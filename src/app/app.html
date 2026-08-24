@@ -5,6 +5,12 @@
   </a>
 
   <nav aria-label="Main navigation">
+    @if (userEmail()) {
+      <span class="current-user" title="{{ userEmail() }}">
+        Signed in as <strong>{{ userEmail() }}</strong>
+      </span>
+      <button class="logout-button" type="button" (click)="logout()">Disconnect</button>
+    }
     <a routerLink="/login" routerLinkActive="active">Login</a>
     <a routerLink="/register" routerLinkActive="active">Register</a>
     <a class="nav-cta" routerLink="/chatroom" routerLinkActive="active">Chat Room</a>

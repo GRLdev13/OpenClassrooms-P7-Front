@@ -23,8 +23,6 @@ export class Chatroom {
 
   readonly suggestedConversations: Conversation[] = [
     { id: 'main', title: 'General chat', subtitle: 'Everyone', initials: 'GC' },
-    { id: 'project-team', title: 'Project team', subtitle: 'Team room', initials: 'PT' },
-    { id: 'community-help', title: 'Community help', subtitle: 'Ask the community', initials: 'CH' },
   ];
 
   openConversations: Conversation[] = [];

@@ -2,7 +2,11 @@
   <section class="messenger-shell">
     <aside class="conversation-sidebar" aria-label="Conversations">
       <div class="sidebar-heading">
-        <div><p class="eyebrow">Messages</p><h1 id="chatroom-title">Chats</h1></div>
+        <div>
+          <p class="eyebrow">Messages</p>
+          <h1 id="chatroom-title">Chats</h1>
+          <p class="chat-account">{{ currentUser.email || currentUser.name }}</p>
+        </div>
         <button class="new-message-button" type="button" aria-label="New message">✎</button>
       </div>
 
@@ -36,7 +40,7 @@
       <h2>Your messages</h2>
       <p>Open a conversation from the list. You can keep several chats open at once.</p>
       <div class="connection-status" [class.connected]="websocketService.status() === 'connected'">
-        <span></span>{{ websocketService.status() }} as {{ currentUser.name }}
+        <span></span>{{ websocketService.status() }} as {{ currentUser.email || currentUser.name }}
       </div>
       @if (websocketService.error()) { <p class="connection-error" role="alert">{{ websocketService.error() }}</p> }
     </section>
@@ -63,8 +67,13 @@
             </div>
             @for (message of messagesFor(conversation.id); track message.id) {
               <div class="message-row" [class.own]="isOwnMessage(message)">
-                @if (!isOwnMessage(message)) { <span class="avatar message-avatar">{{ initials(message.name) }}</span> }
-                <div><span class="message-bubble">{{ message.message }}</span><time>{{ messageTime(message.timeStamp) }}</time></div>
+                <div>
+                  <span class="message-author">
+                    {{ isOwnMessage(message) ? (currentUser.email || currentUser.name) : message.name }}
+                  </span>
+                  <span class="message-bubble">{{ message.message }}</span>
+                  <time>{{ messageTime(message.timeStamp) }}</time>
+                </div>
               </div>
             } @empty { <p class="no-messages">No messages yet. Say hello!</p> }
           </div>

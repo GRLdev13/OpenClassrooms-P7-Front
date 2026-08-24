@@ -8,10 +8,11 @@ import { API_CONFIG } from './api.config';
 @Injectable({ providedIn: 'root' })
 export class ConversationService {
   private readonly http = inject(HttpClient);
+  private readonly ROUTE = 'conversations';
 
   getConversationById(id: string): Observable<ConversationDto> {
     return this.http.get<ConversationDto>(
-      `${API_CONFIG}/conversations/${encodeURIComponent(id)}`,
+      `${API_CONFIG}/${this.ROUTE}/${encodeURIComponent(id)}`,
     );
   }
 }

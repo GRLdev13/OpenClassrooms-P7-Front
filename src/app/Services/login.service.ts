@@ -8,8 +8,9 @@ import { API_CONFIG } from './api.config';
 @Injectable({ providedIn: 'root' })
 export class LoginService {
 	private readonly http = inject(HttpClient);
+	private readonly ROUTE = "users";
 
 	login(credentials: login): Observable<login> {
-		return this.http.post<login>(`${API_CONFIG}/login`, credentials);
+		return this.http.post<login>(`${API_CONFIG}/${this.ROUTE}/login`, credentials);
 	}
 }

@@ -28,7 +28,8 @@
 h1 { margin: 0; color: #17201d; font-size: 3rem; line-height: 1; }
 .intro { margin: 16px 0 32px; color: #66716d; }
 form { display: grid; gap: 22px; }
-.name-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.name-fields,
+.contact-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .field { display: grid; gap: 8px; }
 label { color: #17201d; font-weight: 700; }
 input {
@@ -57,5 +58,6 @@ button:hover { background: #25a18e; }
 
 @media (max-width: 560px) {
   .auth-panel { padding: 32px 24px; box-shadow: 8px 8px 0 #25a18e; }
-  .name-fields { grid-template-columns: 1fr; }
+  .name-fields,
+  .contact-fields { grid-template-columns: 1fr; }
 }

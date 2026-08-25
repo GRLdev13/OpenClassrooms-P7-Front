@@ -4,6 +4,9 @@ export class register
     // confirm_email: string = "";
     password: string = "";
     // confirm_password: string = "";
-    first_name:string = "";
-    last_name:string = "";
+    firstName:string = "";
+    lastName:string = "";
+    phone:string = "";
+    birthday:Date = new Date();
+    address:string = "";
 } 

@@ -45,6 +45,32 @@
         }
       </div>
 
+      <div class="contact-fields">
+        <div class="field">
+          <label for="register-phone">Phone</label>
+          <input id="register-phone" type="tel" formControlName="phone" autocomplete="tel" />
+          @if (registerForm.controls.phone.invalid && (registerForm.controls.phone.touched || submitted)) {
+            <p class="error" role="alert">Enter your phone number.</p>
+          }
+        </div>
+
+        <div class="field">
+          <label for="register-birthday">Birthday</label>
+          <input id="register-birthday" type="datetime" formControlName="birthday" autocomplete="bday" />
+          @if (registerForm.controls.birthday.invalid && (registerForm.controls.birthday.touched || submitted)) {
+            <p class="error" role="alert">Enter your birthday.</p>
+          }
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="register-address">Address</label>
+        <input id="register-address" type="text" formControlName="address" autocomplete="street-address" />
+        @if (registerForm.controls.address.invalid && (registerForm.controls.address.touched || submitted)) {
+          <p class="error" role="alert">Enter your address.</p>
+        }
+      </div>
+
       @if (errorMessage) {
         <p class="error" role="alert">{{ errorMessage }}</p>
       }

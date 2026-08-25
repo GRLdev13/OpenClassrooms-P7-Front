@@ -25,7 +25,6 @@ export class LoginView {
 	submitted = false;
 	isLoading = false;
 	errorMessage = '';
-	successMessage = '';
 
 	onSubmit(): void {
 		this.submitted = true;
@@ -41,7 +40,6 @@ export class LoginView {
 
 		this.isLoading = true;
 		this.errorMessage = '';
-		this.successMessage = '';
 
 		this.loginService
 			.login(credentials)
@@ -62,7 +60,6 @@ export class LoginView {
 						}
 					}
 
-					this.successMessage = 'You are signed in.';
 					void this.router.navigate(['/chatroom']);
 				},
 				error: () => (this.errorMessage = 'Unable to sign in. Check your details and try again.'),
